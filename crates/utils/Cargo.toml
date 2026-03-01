@@ -1,0 +1,7 @@
+[package]
+name = "utils"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["rlib"]

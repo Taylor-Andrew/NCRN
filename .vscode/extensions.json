@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    // Rust
+    "rust-lang.rust-analyzer",
+    "vadimcn.vscode-lldb",
+    "tamasfe.even-better-toml",
+
+    // Web / Vue
+    "vue.volar",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // Productivity
+    "EditorConfig.EditorConfig",
+    "usernamehw.errorlens",
+    "eamodio.gitlens",
+
+    // GitHub Actions
+    "github.vscode-github-actions"
+  ]
+}

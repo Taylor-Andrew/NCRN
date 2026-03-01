@@ -1,0 +1,36 @@
+# ── Rust ──────────────────────────────────────────────────────────────────────
+/target/
+**/*.rs.bk
+
+# wasm-pack output (generated inside each crate by vite-plugin-wasm-pack)
+crates/*/pkg/
+crates/*/wasm-pack-test/
+
+# ── Node / Vite ───────────────────────────────────────────────────────────────
+web/node_modules/
+web/dist/
+web/.vite/
+
+# pnpm
+.pnpm-store/
+
+# ── Editors / OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+
+# VS Code — keep shared settings, ignore personal/generated files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ── Secrets / Env ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+development-guidelines.md

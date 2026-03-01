@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["crates/core", "crates/utils"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+
+[profile.release]
+opt-level = "s"      # minimize WASM binary size
+lto = true
+codegen-units = 1
+panic = "abort"

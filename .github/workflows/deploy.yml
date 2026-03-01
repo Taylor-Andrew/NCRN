@@ -1,0 +1,97 @@
+name: Build and Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  # Allow manual triggers from the Actions tab.
+  workflow_dispatch:
+
+# Minimum permissions required for GitHub Pages deployment.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment runs at a time; cancel any in-progress run
+# when a new push arrives on main.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # ── Build ──────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # dtolnay/rust-toolchain reads rust-toolchain.toml automatically.
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      # Official wasm-pack shell installer — faster than `cargo install`.
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # Cache ~/.cargo/registry, ~/.cargo/git, and the target directory.
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      # pnpm/action-setup MUST run before actions/setup-node so the Node step
+      # can locate the pnpm store when setting up the cache.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      # --frozen-lockfile makes CI fail loudly if pnpm-lock.yaml is stale.
+      - name: Install JS dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      # vite-plugin-wasm-pack needs pkg/ to exist before Vite starts.
+      # It watches for changes during dev but does not bootstrap the initial build.
+      - name: Build WASM
+        run: wasm-pack build crates/core --target web
+
+      - name: Build Vite
+        working-directory: web
+        run: pnpm build
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  # ── Deploy ─────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
