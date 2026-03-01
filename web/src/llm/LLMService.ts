@@ -70,8 +70,55 @@ export class LLMService {
     return fullReply
   }
 
+  /**
+   * One-shot inference that does NOT touch conversation history.
+   * Used by the DLP detector for structured NER calls.
+   *
+   * Resets the KV cache after every call so GPU memory is freed immediately
+   * rather than accumulating across multiple NER invocations.
+   *
+   * @param temperature - Default 0 for deterministic structured output.
+   */
+  async inferOnce(
+    systemPrompt: string,
+    userText: string,
+    temperature = 0,
+  ): Promise<string> {
+    if (this.engine === null) {
+      throw new Error('Model not loaded — call loadModel() first')
+    }
+    try {
+      const result = await this.engine.chat.completions.create({
+        messages: [
+          { role: 'system' as const, content: systemPrompt },
+          { role: 'user' as const, content: userText },
+        ],
+        stream: false,
+        temperature,
+      })
+      return result.choices[0]?.message.content ?? ''
+    } finally {
+      // Always free the KV cache regardless of success or failure.
+      // The conversation history lives in this.history (not the engine),
+      // so resetChat() does not affect ongoing chat sessions.
+      await this.engine?.resetChat()
+    }
+  }
+
   /** Clear conversation history without reloading the model. */
   reset(): void {
     this.history.length = 0
+  }
+
+  /**
+   * Unload model weights from GPU/CPU memory.
+   * Call when the component using this service is unmounted.
+   */
+  async dispose(): Promise<void> {
+    if (this.engine !== null) {
+      await this.engine.unload()
+      this.engine = null
+      this.history.length = 0
+    }
   }
 }
